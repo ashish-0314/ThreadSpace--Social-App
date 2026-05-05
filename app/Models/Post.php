@@ -7,7 +7,7 @@ use MongoDB\Laravel\Eloquent\Model;
 class Post extends Model
 {
     protected $fillable = [
-        'community_id', 'user_id', 'title', 'type', 'content', 'image_url',
+        'community_id', 'user_id', 'title', 'type', 'content', 'image_url', 'media',
         'intent', 'upvotes', 'downvotes', 'quality_score', 'engagement_time',
         'is_repost', 'original_post_id', 'repost_comment',
     ];

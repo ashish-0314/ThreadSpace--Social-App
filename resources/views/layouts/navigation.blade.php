@@ -16,13 +16,25 @@
             <a href="{{ route('communities.index') }}" class="ts-nav-link {{ request()->routeIs('communities.*') ? 'active' : '' }}">Communities</a>
         </div>
 
+        <x-global-search />
+
         <!-- Right -->
         <div class="ts-nav-right">
             @auth
+                <a href="{{ route('posts.create.standalone') }}"
+                   class="btn-fill"
+                   style="padding:6px 16px;font-size:.82rem;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Create Post
+                </a>
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="nav-user-chip">
-                            <div class="nav-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
+                            @if(Auth::user()->avatar_url)
+                                <img src="{{ Auth::user()->avatar_url }}" class="nav-avatar" style="object-fit:cover;border:none;">
+                            @else
+                                <div class="nav-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
+                            @endif
                             {{ Auth::user()->name }}
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                         </button>
@@ -56,6 +68,9 @@
             <a href="{{ route('home') }}" class="ts-nav-link" style="border-radius:8px;">Home</a>
             <a href="{{ route('communities.index') }}" class="ts-nav-link" style="border-radius:8px;">Communities</a>
             @auth
+            <a href="{{ route('posts.create.standalone') }}" class="btn-fill" style="border-radius:8px;text-align:center;margin:4px 0;">
+                + Create Post
+            </a>
             <div style="border-top:1px solid #21262d;margin-top:6px;padding-top:6px;display:flex;flex-direction:column;gap:2px;">
                 <a href="{{ route('profile.edit') }}" class="ts-nav-link" style="border-radius:8px;">Profile</a>
                 <form method="POST" action="{{ route('logout') }}">

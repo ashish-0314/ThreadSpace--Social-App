@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Community;
+use App\Models\Vote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -56,8 +57,18 @@ class CommunityController extends Controller
     {
         $community = Community::where('slug', $identifier)->orWhere('_id', $identifier)->firstOrFail();
         $posts = $community->posts()->with('user')->orderBy('created_at', 'desc')->paginate(15);
-        
-        return view('communities.show', compact('community', 'posts'));
+
+        $userVotes = [];
+        if (auth()->check()) {
+            $ids = $posts->pluck('id')->map(fn($id) => (string)$id)->toArray();
+            Vote::where('user_id', auth()->id())
+                ->where('votable_type', 'App\Models\Post')
+                ->whereIn('votable_id', $ids)
+                ->get(['votable_id', 'value'])
+                ->each(fn($v) => $userVotes[(string)$v->votable_id] = (int)$v->value);
+        }
+
+        return view('communities.show', compact('community', 'posts', 'userVotes'));
     }
 
     public function edit(Community $community)

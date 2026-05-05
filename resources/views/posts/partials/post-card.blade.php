@@ -4,7 +4,11 @@
     {{-- ── Repost header banner ─────────────────────────── --}}
     @if($post->is_repost)
     <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #21262d;">
-        <div class="pc-avatar" style="width:22px;height:22px;font-size:.58rem;">{{ strtoupper(substr($post->user->name ?? 'U', 0, 1)) }}</div>
+        @if($post->user && $post->user->avatar_url)
+            <img src="{{ $post->user->avatar_url }}" class="pc-avatar" style="width:22px;height:22px;object-fit:cover;border:none;">
+        @else
+            <div class="pc-avatar" style="width:22px;height:22px;font-size:.58rem;">{{ strtoupper(substr($post->user->name ?? 'U', 0, 1)) }}</div>
+        @endif
         <span style="font-size:.78rem;color:#8b949e;">
             <span style="font-weight:600;color:#d4d9e0;">u/{{ $post->user->name ?? 'Unknown' }}</span>
             &nbsp;↺ reposted
@@ -20,7 +24,11 @@
     {{-- ── Normal post header (non-repost) ────────────── --}}
     @if(!$post->is_repost)
     <div class="pc-header">
-        <div class="pc-avatar">{{ strtoupper(substr($post->user->name ?? 'U', 0, 1)) }}</div>
+        @if($post->user && $post->user->avatar_url)
+            <img src="{{ $post->user->avatar_url }}" class="pc-avatar" style="object-fit:cover;border:none;">
+        @else
+            <div class="pc-avatar">{{ strtoupper(substr($post->user->name ?? 'U', 0, 1)) }}</div>
+        @endif
         <span class="pc-author">u/{{ $post->user->name ?? 'Unknown' }}</span>
         <span class="pc-dot">•</span>
         <span class="pc-time">{{ $post->created_at->diffForHumans() }}</span>
@@ -44,9 +52,13 @@
             <div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px 14px;transition:border-color .2s;" onmouseover="this.style.borderColor='#58a6ff55'" onmouseout="this.style.borderColor='#30363d'">
                 <!-- Original author -->
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                    <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#db2777);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:800;color:#fff;flex-shrink:0;">
-                        {{ strtoupper(substr($orig->user->name ?? 'U', 0, 1)) }}
-                    </div>
+                    @if($orig->user && $orig->user->avatar_url)
+                        <img src="{{ $orig->user->avatar_url }}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                    @else
+                        <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#db2777);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:800;color:#fff;flex-shrink:0;">
+                            {{ strtoupper(substr($orig->user->name ?? 'U', 0, 1)) }}
+                        </div>
+                    @endif
                     <span style="font-size:.76rem;font-weight:600;color:#8b949e;">u/{{ $orig->user->name ?? 'Unknown' }}</span>
                     <span style="color:#374151;font-size:.72rem;">•</span>
                     <span style="font-size:.74rem;color:#6b7280;">{{ $orig->created_at->diffForHumans() }}</span>
@@ -60,8 +72,19 @@
                 <!-- Original content preview -->
                 @if($orig->type === 'text' && $orig->content)
                     <div style="font-size:.82rem;color:#6b7280;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ $orig->content }}</div>
-                @elseif($orig->type === 'image' && $orig->image_url)
-                    <img src="{{ $orig->image_url }}" style="width:100%;max-height:160px;object-fit:cover;border-radius:6px;">
+                @elseif(in_array($orig->type, ['image', 'media']) && ($orig->image_url || !empty($orig->media)))
+                    @php $mediaList = !empty($orig->media) ? $orig->media : ($orig->image_url ? [['url' => $orig->image_url, 'type' => 'image']] : []); @endphp
+                    <div class="media-carousel" style="max-height:160px;margin-bottom:12px;">
+                        @foreach($mediaList as $media)
+                            @if($media['type'] === 'image')
+                                <img src="{{ $media['url'] }}" class="media-item" style="max-height:160px;">
+                            @elseif($media['type'] === 'video')
+                                <video src="{{ $media['url'] }}" controls class="media-item" style="max-height:160px;"></video>
+                            @elseif($media['type'] === 'audio')
+                                <audio src="{{ $media['url'] }}" controls class="media-item" style="height:40px;"></audio>
+                            @endif
+                        @endforeach
+                    </div>
                 @elseif($orig->type === 'link' && $orig->content)
                     <span style="font-size:.8rem;color:#58a6ff;">🔗 {{ $orig->content }}</span>
                 @endif
@@ -76,8 +99,19 @@
         <div style="margin-bottom:10px;">
             <span class="pc-flair pc-flair-{{ $post->intent }}">{{ $post->intent }}</span>
         </div>
-        @if($post->type === 'image' && $post->image_url)
-            <img src="{{ $post->image_url }}" alt="" class="pc-image">
+        @if(in_array($post->type, ['image', 'media']) && ($post->image_url || !empty($post->media)))
+            @php $mediaList = !empty($post->media) ? $post->media : ($post->image_url ? [['url' => $post->image_url, 'type' => 'image']] : []); @endphp
+            <div class="media-carousel">
+                @foreach($mediaList as $media)
+                    @if($media['type'] === 'image')
+                        <img src="{{ $media['url'] }}" class="media-item" alt="">
+                    @elseif($media['type'] === 'video')
+                        <video src="{{ $media['url'] }}" controls class="media-item"></video>
+                    @elseif($media['type'] === 'audio')
+                        <audio src="{{ $media['url'] }}" controls class="media-item" style="height:40px;"></audio>
+                    @endif
+                @endforeach
+            </div>
         @elseif($post->type === 'text' && $post->content)
             <div class="pc-body">{{ $post->content }}</div>
         @elseif($post->type === 'link' && $post->content)
@@ -88,32 +122,40 @@
     {{-- ── Action bar ──────────────────────────────────── --}}
     <div class="pc-actions">
 
-        {{-- Vote pill --}}
+        {{-- Vote pill – Alpine reactive, instant color on click, no page reload --}}
         @auth
-        <form action="{{ route('vote') }}" method="POST" style="display:inline-flex;align-items:center;">
-            @csrf
-            <input type="hidden" name="votable_id"   value="{{ $post->id }}">
-            <input type="hidden" name="votable_type" value="Post">
-            <input type="hidden" name="value" id="vote-val-{{ $post->id }}" value="1">
-            <div class="vote-pill">
-                <button type="submit" class="vote-btn-up" title="Upvote"
-                        onclick="document.getElementById('vote-val-{{ $post->id }}').value='1'">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
-                </button>
-                <span class="vote-score">{{ (int)($post->upvotes ?? 0) - (int)($post->downvotes ?? 0) }}</span>
-                <div class="vote-divider"></div>
-                <button type="submit" class="vote-btn-down" title="Downvote"
-                        onclick="document.getElementById('vote-val-{{ $post->id }}').value='-1'">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                </button>
-            </div>
-        </form>
+        @php $myVote = $userVotes[(string)$post->id] ?? null; @endphp
+        <div x-data="voteWidget(
+                '{{ $post->id }}',
+                'Post',
+                {{ $myVote ?? 'null' }},
+                {{ (int)($post->upvotes ?? 0) - (int)($post->downvotes ?? 0) }}
+             )"
+             class="vote-pill"
+             :class="pillClass">
+            <button type="button" class="vote-btn-up"
+                    :title="userVote === 1 ? 'Remove upvote' : 'Upvote'"
+                    @click="castVote(1)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 4L3 15h6v5h6v-5h6L12 4z"/>
+                </svg>
+            </button>
+            <span class="vote-score" x-text="score"></span>
+            <div class="vote-divider"></div>
+            <button type="button" class="vote-btn-down"
+                    :title="userVote === -1 ? 'Remove downvote' : 'Downvote'"
+                    @click="castVote(-1)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 20l9-11h-6V4H9v5H3l9 11z"/>
+                </svg>
+            </button>
+        </div>
         @else
-        <a href="{{ route('login') }}" class="vote-pill" style="text-decoration:none;">
-            <span class="vote-btn-up"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></span>
+        <a href="{{ route('login') }}" class="vote-pill" style="text-decoration:none;" title="Log in to vote">
+            <span class="vote-btn-up"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4L3 15h6v5h6v-5h6L12 4z"/></svg></span>
             <span class="vote-score">{{ (int)($post->upvotes ?? 0) - (int)($post->downvotes ?? 0) }}</span>
             <div class="vote-divider"></div>
-            <span class="vote-btn-down"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></span>
+            <span class="vote-btn-down"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l9-11h-6V4H9v5H3l9 11z"/></svg></span>
         </a>
         @endauth
 

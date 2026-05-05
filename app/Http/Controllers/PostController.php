@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use App\Models\Community;
+use App\Models\Vote;
 use Illuminate\Http\Request;
 use ImageKit\ImageKit;
 
@@ -15,8 +16,11 @@ class PostController extends Controller
 
         $query = Post::with(['user', 'community', 'originalPost.user', 'originalPost.community']);
 
-        if (auth()->check() && auth()->user()->joined_communities) {
-            $query->whereIn('community_id', auth()->user()->joined_communities);
+        if (auth()->check() && !empty(auth()->user()->joined_communities)) {
+            $query->where(function ($q) {
+                $q->whereIn('community_id', auth()->user()->joined_communities)
+                  ->orWhereNull('community_id');
+            });
         }
 
         if ($sort === 'top') {
@@ -28,7 +32,19 @@ class PostController extends Controller
         }
 
         $posts = $query->paginate(15);
-        return view('home', compact('posts', 'sort'));
+
+        // Build a map of post_id => user's vote value (1 or -1) for highlighting
+        $userVotes = [];
+        if (auth()->check()) {
+            $ids = $posts->pluck('id')->map(fn($id) => (string)$id)->toArray();
+            Vote::where('user_id', auth()->id())
+                ->where('votable_type', 'App\Models\Post')
+                ->whereIn('votable_id', $ids)
+                ->get(['votable_id', 'value'])
+                ->each(fn($v) => $userVotes[(string)$v->votable_id] = (int)$v->value);
+        }
+
+        return view('home', compact('posts', 'sort', 'userVotes'));
     }
 
     public function create(Community $community)
@@ -36,18 +52,26 @@ class PostController extends Controller
         return view('posts.create', compact('community'));
     }
 
+    // Standalone create — no community required
+    public function createStandalone()
+    {
+        $communities = Community::orderBy('name')->get();
+        return view('posts.create-standalone', compact('communities'));
+    }
+
     public function store(Request $request, Community $community)
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'type' => 'required|in:text,image,link',
+            'type' => 'required|in:text,image,media,link',
             'content' => 'required_if:type,text|required_if:type,link|string|nullable',
             'intent' => 'required|in:Question,Discussion,Tutorial,Opinion',
-            'image' => 'required_if:type,image|image|max:5120', // 5MB max
+            'media' => 'required_if:type,media|required_if:type,image|array|max:10',
+            'media.*' => 'file|mimes:jpeg,png,jpg,gif,mp4,mov,avi,mp3,wav,webp|max:20480',
         ]);
 
-        $imageUrl = null;
-        if ($request->hasFile('image') && $validated['type'] === 'image') {
+        $mediaList = [];
+        if ($request->hasFile('media') && in_array($validated['type'], ['image', 'media'])) {
             try {
                 $imageKit = new ImageKit(
                     config('imagekit.public_key'),
@@ -55,32 +79,106 @@ class PostController extends Controller
                     config('imagekit.url_endpoint')
                 );
 
-                $file = $request->file('image');
-                $uploadResponse = $imageKit->uploadFile([
-                    'file' => base64_encode(file_get_contents($file->path())),
-                    'fileName' => time() . '_' . $file->getClientOriginalName(),
-                    'folder' => '/threadspace_posts'
-                ]);
+                foreach ($request->file('media') as $file) {
+                    $mime = $file->getMimeType();
+                    $mediaType = 'image';
+                    if (str_starts_with($mime, 'video/')) $mediaType = 'video';
+                    elseif (str_starts_with($mime, 'audio/')) $mediaType = 'audio';
 
-                if (isset($uploadResponse->result->url)) {
-                    $imageUrl = $uploadResponse->result->url;
+                    $uploadResponse = $imageKit->uploadFile([
+                        'file' => base64_encode(file_get_contents($file->path())),
+                        'fileName' => time() . '_' . $file->getClientOriginalName(),
+                        'folder' => '/threadspace_posts'
+                    ]);
+
+                    if (isset($uploadResponse->result->url)) {
+                        $mediaList[] = [
+                            'url' => $uploadResponse->result->url,
+                            'type' => $mediaType,
+                            'mime' => $mime,
+                        ];
+                    }
                 }
             } catch (\Exception $e) {
-                return back()->withInput()->withErrors(['image' => 'Failed to upload image.']);
+                return back()->withInput()->withErrors(['media' => 'Failed to upload media: ' . $e->getMessage()]);
             }
         }
 
         $post = Post::create([
             'community_id' => $community->id,
-            'user_id' => auth()->id(),
-            'title' => $validated['title'],
-            'type' => $validated['type'],
-            'content' => $validated['content'] ?? '',
-            'image_url' => $imageUrl,
-            'intent' => $validated['intent'],
-            'upvotes' => 0,
-            'downvotes' => 0,
-            'quality_score' => 0,
+            'user_id'      => auth()->id(),
+            'title'        => $validated['title'],
+            'type'         => $validated['type'] === 'image' ? 'media' : $validated['type'],
+            'content'      => $validated['content'] ?? '',
+            'media'        => $mediaList,
+            'intent'       => $validated['intent'],
+            'upvotes'      => 0,
+            'downvotes'    => 0,
+            'quality_score'=> 0,
+            'engagement_time' => 0,
+        ]);
+
+        return redirect()->route('posts.show', $post)->with('success', 'Post created successfully!');
+    }
+
+    // Standalone store — community optional
+    public function storeStandalone(Request $request)
+    {
+        $validated = $request->validate([
+            'title'        => 'required|string|max:255',
+            'type'         => 'required|in:text,image,media,link',
+            'content'      => 'required_if:type,text|required_if:type,link|string|nullable',
+            'intent'       => 'required|in:Question,Discussion,Tutorial,Opinion',
+            'community_id' => 'nullable|string',
+            'media'        => 'required_if:type,media|required_if:type,image|array|max:10',
+            'media.*'      => 'file|mimes:jpeg,png,jpg,gif,mp4,mov,avi,mp3,wav,webp|max:20480',
+        ]);
+
+        $mediaList = [];
+        if ($request->hasFile('media') && in_array($validated['type'], ['image', 'media'])) {
+            try {
+                $imageKit = new ImageKit(
+                    config('imagekit.public_key'),
+                    config('imagekit.private_key'),
+                    config('imagekit.url_endpoint')
+                );
+                
+                foreach ($request->file('media') as $file) {
+                    $mime = $file->getMimeType();
+                    $mediaType = 'image';
+                    if (str_starts_with($mime, 'video/')) $mediaType = 'video';
+                    elseif (str_starts_with($mime, 'audio/')) $mediaType = 'audio';
+
+                    $uploadResponse = $imageKit->uploadFile([
+                        'file'     => base64_encode(file_get_contents($file->path())),
+                        'fileName' => time() . '_' . $file->getClientOriginalName(),
+                        'folder'   => '/threadspace_posts',
+                    ]);
+
+                    if (isset($uploadResponse->result->url)) {
+                        $mediaList[] = [
+                            'url' => $uploadResponse->result->url,
+                            'type' => $mediaType,
+                            'mime' => $mime,
+                        ];
+                    }
+                }
+            } catch (\Exception $e) {
+                return back()->withInput()->withErrors(['media' => 'Failed to upload media: ' . $e->getMessage()]);
+            }
+        }
+
+        $post = Post::create([
+            'community_id' => $validated['community_id'] ?? null,
+            'user_id'      => auth()->id(),
+            'title'        => $validated['title'],
+            'type'         => $validated['type'] === 'image' ? 'media' : $validated['type'],
+            'content'      => $validated['content'] ?? '',
+            'media'        => $mediaList,
+            'intent'       => $validated['intent'],
+            'upvotes'      => 0,
+            'downvotes'    => 0,
+            'quality_score'=> 0,
             'engagement_time' => 0,
         ]);
 
@@ -98,7 +196,17 @@ class PostController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        return view('posts.show', compact('post', 'comments'));
+        // Current user's vote on THIS post
+        $userVote = null;
+        if (auth()->check()) {
+            $v = Vote::where('user_id', auth()->id())
+                     ->where('votable_type', 'App\Models\Post')
+                     ->where('votable_id', (string)$post->id)
+                     ->first();
+            $userVote = $v ? (int)$v->value : null;
+        }
+
+        return view('posts.show', compact('post', 'comments', 'userVote'));
     }
 
     public function summarize(Post $post)

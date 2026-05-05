@@ -5,9 +5,11 @@ use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\VoteController;
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PostController::class, 'feed'])->name('home');
+Route::get('/search', [SearchController::class, 'index'])->name('search');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -19,7 +21,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/communities/{community}/join', [CommunityController::class, 'join'])->name('communities.join');
     Route::post('/communities/{community}/leave', [CommunityController::class, 'leave'])->name('communities.leave');
 
-    // Posts
+    // Posts – standalone must come BEFORE resource to prevent /posts/create
+    //         being swallowed by the shallow resource's GET /posts/{post} route
+    Route::get('/posts/create',          [PostController::class, 'createStandalone'])->name('posts.create.standalone');
+    Route::post('/posts',                [PostController::class, 'storeStandalone'])->name('posts.store.standalone');
     Route::resource('communities.posts', PostController::class)->shallow()->only(['create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::post('/posts/{post}/summarize', [PostController::class, 'summarize'])->name('posts.summarize');
     Route::get('/posts/{post}/repost',  [PostController::class, 'repostForm'])->name('posts.repost.form');

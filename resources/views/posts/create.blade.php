@@ -32,14 +32,14 @@
                         </div>
 
                         <!-- Type (Tabs simulation) -->
-                        <div class="mt-6 border-b border-gray-200 dark:border-gray-700 mb-4" x-data="{ tab: 'text' }">
+                        <div class="mt-6 border-b border-gray-200 dark:border-gray-700 mb-4" x-data="{ tab: '{{ old('type', 'text') }}' }">
                             <input type="hidden" name="type" x-model="tab">
                             <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="myTab" data-tabs-toggle="#myTabContent" role="tablist">
                                 <li class="mr-2" role="presentation">
                                     <button class="inline-block p-4 border-b-2 rounded-t-lg" :class="tab === 'text' ? 'border-indigo-600 text-indigo-600' : 'border-transparent hover:text-gray-600 hover:border-gray-300'" @click.prevent="tab = 'text'" type="button" role="tab">Text</button>
                                 </li>
                                 <li class="mr-2" role="presentation">
-                                    <button class="inline-block p-4 border-b-2 rounded-t-lg" :class="tab === 'image' ? 'border-indigo-600 text-indigo-600' : 'border-transparent hover:text-gray-600 hover:border-gray-300'" @click.prevent="tab = 'image'" type="button" role="tab">Image</button>
+                                    <button class="inline-block p-4 border-b-2 rounded-t-lg" :class="tab === 'media' ? 'border-indigo-600 text-indigo-600' : 'border-transparent hover:text-gray-600 hover:border-gray-300'" @click.prevent="tab = 'media'" type="button" role="tab">Media</button>
                                 </li>
                                 <li class="mr-2" role="presentation">
                                     <button class="inline-block p-4 border-b-2 rounded-t-lg" :class="tab === 'link' ? 'border-indigo-600 text-indigo-600' : 'border-transparent hover:text-gray-600 hover:border-gray-300'" @click.prevent="tab = 'link'" type="button" role="tab">Link</button>
@@ -49,29 +49,29 @@
                             <div class="py-4">
                                 <!-- Text Content -->
                                 <div x-show="tab === 'text'">
-                                    <textarea name="content" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full" rows="6" placeholder="What are your thoughts?">{{ old('content') }}</textarea>
+                                    <textarea name="content" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full" rows="6" placeholder="What are your thoughts?" :disabled="tab !== 'text'">{{ old('content') }}</textarea>
                                 </div>
                                 
-                                <!-- Image Upload -->
-                                <div x-show="tab === 'image'" style="display: none;">
+                                <!-- Media Upload -->
+                                <div x-show="tab === 'media'" style="display: none;" x-data="{ fileName: '' }">
                                     <div class="flex items-center justify-center w-full">
                                         <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
                                             <div class="flex flex-col items-center justify-center pt-5 pb-6">
                                                 <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
                                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                                                 </svg>
-                                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                                                <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG or GIF (MAX. 5MB)</p>
+                                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold" x-text="fileName ? fileName : 'Click to upload media (up to 10 files)'"></span> <span x-show="!fileName">or drag and drop</span></p>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400" x-show="!fileName">Images, Video, Audio (MAX. 20MB each)</p>
                                             </div>
-                                            <input id="dropzone-file" type="file" name="image" class="hidden" accept="image/*" />
+                                            <input id="dropzone-file" type="file" name="media[]" multiple accept="image/*,video/*,audio/*" class="hidden" :disabled="tab !== 'media'" @change="fileName = $event.target.files.length > 0 ? Array.from($event.target.files).map(f => f.name).join(', ') : ''" />
                                         </label>
                                     </div> 
-                                    <x-input-error :messages="$errors->get('image')" class="mt-2" />
+                                    <x-input-error :messages="$errors->get('media')" class="mt-2" />
                                 </div>
 
                                 <!-- Link -->
                                 <div x-show="tab === 'link'" style="display: none;">
-                                    <x-text-input class="block mt-1 w-full" type="url" name="content" :value="old('content')" placeholder="Url" />
+                                    <x-text-input class="block mt-1 w-full" type="url" name="content" :value="old('content')" placeholder="Url" :disabled="tab !== 'link'" />
                                 </div>
                             </div>
                         </div>

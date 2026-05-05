@@ -32,6 +32,36 @@ class ProfileController extends Controller
             $request->user()->bio = $request->input('bio');
         }
 
+        $request->validate([
+            'default_avatar' => ['nullable', 'string'],
+            'custom_avatar' => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        if ($request->hasFile('custom_avatar')) {
+            try {
+                $imageKit = new \ImageKit\ImageKit(
+                    config('imagekit.public_key'),
+                    config('imagekit.private_key'),
+                    config('imagekit.url_endpoint')
+                );
+                
+                $file = $request->file('custom_avatar');
+                $uploadResponse = $imageKit->uploadFile([
+                    'file'     => base64_encode(file_get_contents($file->path())),
+                    'fileName' => time() . '_' . $file->getClientOriginalName(),
+                    'folder'   => '/threadspace_avatars',
+                ]);
+
+                if (isset($uploadResponse->result->url)) {
+                    $request->user()->avatar_url = $uploadResponse->result->url;
+                }
+            } catch (\Exception $e) {
+                return back()->withInput()->withErrors(['custom_avatar' => 'Failed to upload custom avatar: ' . $e->getMessage()]);
+            }
+        } elseif ($request->filled('default_avatar')) {
+            $request->user()->avatar_url = $request->input('default_avatar');
+        }
+
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
         }

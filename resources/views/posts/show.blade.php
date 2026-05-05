@@ -5,7 +5,11 @@
     <div class="post-card" style="margin-bottom:16px;cursor:default;">
         <!-- Header -->
         <div class="pc-header">
-            <div class="pc-avatar">{{ strtoupper(substr($post->user->name ?? 'U', 0, 1)) }}</div>
+            @if($post->user && $post->user->avatar_url)
+                <img src="{{ $post->user->avatar_url }}" class="pc-avatar" style="object-fit:cover;border:none;">
+            @else
+                <div class="pc-avatar">{{ strtoupper(substr($post->user->name ?? 'U', 0, 1)) }}</div>
+            @endif
             <span class="pc-author">u/{{ $post->user->name ?? 'Unknown' }}</span>
             <span class="pc-dot">•</span>
             <span class="pc-time">{{ $post->created_at->diffForHumans() }}</span>
@@ -27,8 +31,19 @@
         <div style="margin-bottom:16px;">
             @if($post->type === 'text' && $post->content)
                 <div style="font-size:.9rem;color:#d4d9e0;line-height:1.75;white-space:pre-wrap;">{!! nl2br(e($post->content)) !!}</div>
-            @elseif($post->type === 'image' && $post->image_url)
-                <img src="{{ $post->image_url }}" alt="Post image" style="width:100%;border-radius:8px;max-height:500px;object-fit:cover;">
+            @elseif(in_array($post->type, ['image', 'media']) && ($post->image_url || !empty($post->media)))
+                @php $mediaList = !empty($post->media) ? $post->media : ($post->image_url ? [['url' => $post->image_url, 'type' => 'image']] : []); @endphp
+                <div class="media-carousel" style="max-height:500px;">
+                    @foreach($mediaList as $media)
+                        @if($media['type'] === 'image')
+                            <img src="{{ $media['url'] }}" class="media-item" style="max-height:500px;border-radius:8px;" alt="">
+                        @elseif($media['type'] === 'video')
+                            <video src="{{ $media['url'] }}" controls class="media-item" style="max-height:500px;border-radius:8px;"></video>
+                        @elseif($media['type'] === 'audio')
+                            <audio src="{{ $media['url'] }}" controls class="media-item" style="border-radius:8px;width:100%;"></audio>
+                        @endif
+                    @endforeach
+                </div>
             @elseif($post->type === 'link' && $post->content)
                 <a href="{{ $post->content }}" target="_blank" class="text-link" style="font-size:.88rem;word-break:break-all;">🔗 {{ $post->content }}</a>
             @endif
@@ -52,30 +67,33 @@
         <!-- Action Bar -->
         <div class="pc-actions">
             @auth
-            <form action="{{ route('vote') }}" method="POST" style="display:inline-flex;align-items:center;">
-                @csrf
-                <input type="hidden" name="votable_id"   value="{{ $post->id }}">
-                <input type="hidden" name="votable_type" value="Post">
-                <input type="hidden" name="value" id="vv-show-{{ $post->id }}" value="1">
-                <div class="vote-pill">
-                    <button type="submit" class="vote-btn-up" title="Upvote"
-                            onclick="document.getElementById('vv-show-{{ $post->id }}').value='1'">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
-                    </button>
-                    <span class="vote-score">{{ (int)($post->upvotes ?? 0) - (int)($post->downvotes ?? 0) }}</span>
-                    <div class="vote-divider"></div>
-                    <button type="submit" class="vote-btn-down" title="Downvote"
-                            onclick="document.getElementById('vv-show-{{ $post->id }}').value='-1'">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </button>
-                </div>
-            </form>
+            <div x-data="voteWidget(
+                    '{{ $post->id }}',
+                    'Post',
+                    {{ $userVote ?? 'null' }},
+                    {{ (int)($post->upvotes ?? 0) - (int)($post->downvotes ?? 0) }}
+                 )"
+                 class="vote-pill"
+                 :class="pillClass">
+                <button type="button" class="vote-btn-up"
+                        :title="userVote === 1 ? 'Remove upvote' : 'Upvote'"
+                        @click="castVote(1)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4L3 15h6v5h6v-5h6L12 4z"/></svg>
+                </button>
+                <span class="vote-score" x-text="score"></span>
+                <div class="vote-divider"></div>
+                <button type="button" class="vote-btn-down"
+                        :title="userVote === -1 ? 'Remove downvote' : 'Downvote'"
+                        @click="castVote(-1)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l9-11h-6V4H9v5H3l9 11z"/></svg>
+                </button>
+            </div>
             @else
-            <a href="{{ route('login') }}" class="vote-pill" style="text-decoration:none;">
-                <span class="vote-btn-up" style="cursor:pointer;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></span>
+            <a href="{{ route('login') }}" class="vote-pill" style="text-decoration:none;" title="Log in to vote">
+                <span class="vote-btn-up"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4L3 15h6v5h6v-5h6L12 4z"/></svg></span>
                 <span class="vote-score">{{ (int)($post->upvotes ?? 0) - (int)($post->downvotes ?? 0) }}</span>
                 <div class="vote-divider"></div>
-                <span class="vote-btn-down" style="cursor:pointer;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></span>
+                <span class="vote-btn-down"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l9-11h-6V4H9v5H3l9 11z"/></svg></span>
             </a>
             @endauth
 

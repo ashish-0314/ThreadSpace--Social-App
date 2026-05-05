@@ -106,6 +106,33 @@ class VoteController extends Controller
             }
         }
 
+        $score = $upvotes - $downvotes;
+
+        // Determine what the user's current vote is after this action
+        $userVote = null;
+        if ($existingVote && !$existingVote->exists) {
+            $userVote = null; // was toggled off
+        } elseif ($existingVote) {
+            $userVote = $existingVote->value;
+        } else {
+            // new vote - find it
+            $latestVote = Vote::where('user_id', $userId)
+                ->where('votable_id', $validated['votable_id'])
+                ->where('votable_type', $modelClass)
+                ->first();
+            $userVote = $latestVote ? (int)$latestVote->value : null;
+        }
+
+        // Return JSON for AJAX requests, redirect for regular form posts
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'score'    => $score,
+                'upvotes'  => $upvotes,
+                'downvotes'=> $downvotes,
+                'userVote' => $userVote,
+            ]);
+        }
+
         return back();
     }
 
