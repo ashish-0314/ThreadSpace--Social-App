@@ -11,61 +11,47 @@ class SearchController extends Controller
 {
     public function index(Request $request)
     {
-        $query = $request->input('q', '');
+        $query = trim($request->input('q', ''));
 
-        if (empty(trim($query))) {
-            return response()->json([
-                'posts' => [],
-                'communities' => [],
-                'users' => []
-            ]);
+        // ── AJAX / JSON request (navbar live-search) ─────────────────
+        if ($request->expectsJson() || $request->wantsJson()) {
+            if (empty($query)) {
+                return response()->json(['posts' => [], 'communities' => [], 'users' => []]);
+            }
+
+            $posts = Post::where('title', 'regexp', "/{$query}/i")
+                ->select('_id', 'title', 'intent')->take(5)->get()
+                ->map(fn($p) => ['id' => (string)$p->_id, 'title' => $p->title, 'intent' => $p->intent, 'url' => route('posts.show', $p)]);
+
+            $communities = Community::where('name', 'regexp', "/{$query}/i")
+                ->select('_id', 'name', 'slug')->take(5)->get()
+                ->map(fn($c) => ['id' => (string)$c->_id, 'name' => 'c/' . $c->name, 'url' => route('communities.show', $c->slug)]);
+
+            $users = User::where('name', 'regexp', "/{$query}/i")
+                ->select('_id', 'name')->take(5)->get()
+                ->map(fn($u) => ['id' => (string)$u->_id, 'name' => 'u/' . $u->name, 'url' => route('profile.show', $u->_id)]);
+
+            return response()->json(compact('posts', 'communities', 'users'));
         }
 
-        // Search Posts (by title)
-        $posts = Post::where('title', 'like', "%{$query}%")
-                     ->select('_id', 'title', 'intent')
-                     ->take(5)
-                     ->get()
-                     ->map(function ($post) {
-                         return [
-                             'id' => (string)$post->_id,
-                             'title' => $post->title,
-                             'intent' => $post->intent,
-                             'url' => route('posts.show', $post)
-                         ];
-                     });
+        // ── Full-page browser request ─────────────────────────────────
+        $posts       = collect();
+        $communities = collect();
+        $users       = collect();
 
-        // Search Communities (by name)
-        $communities = Community::where('name', 'like', "%{$query}%")
-                                ->select('_id', 'name', 'slug')
-                                ->take(5)
-                                ->get()
-                                ->map(function ($community) {
-                                    return [
-                                        'id' => (string)$community->_id,
-                                        'name' => 'c/' . $community->name,
-                                        'url' => route('communities.show', $community->slug)
-                                    ];
-                                });
+        if (!empty($query)) {
+            $posts = Post::where('title', 'regexp', "/{$query}/i")
+                ->with('user', 'community')
+                ->orderBy('created_at', 'desc')
+                ->take(20)->get();
 
-        // Search Users (by name)
-        $users = User::where('name', 'like', "%{$query}%")
-                     ->select('_id', 'name')
-                     ->take(5)
-                     ->get()
-                     ->map(function ($user) {
-                         return [
-                             'id' => (string)$user->_id,
-                             'name' => 'u/' . $user->name,
-                             // If there are user profiles later, point there. For now, maybe just '#'
-                             'url' => '#' 
-                         ];
-                     });
+            $communities = Community::where('name', 'regexp', "/{$query}/i")
+                ->take(10)->get();
 
-        return response()->json([
-            'posts' => $posts,
-            'communities' => $communities,
-            'users' => $users
-        ]);
+            $users = User::where('name', 'regexp', "/{$query}/i")
+                ->take(10)->get();
+        }
+
+        return view('search.index', compact('query', 'posts', 'communities', 'users'));
     }
 }

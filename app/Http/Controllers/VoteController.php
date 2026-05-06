@@ -89,7 +89,7 @@ class VoteController extends Controller
         }
 
         if ($post) {
-            $this->updateQualityScore($post);
+            $post->refreshQualityScore();
         }
 
         // Reputation: add +1 to post/comment owner per upvote
@@ -103,6 +103,24 @@ class VoteController extends Controller
                 $reputation[$category] = ((int)($reputation[$category] ?? 0)) + 1;
                 $owner->reputation = $reputation;
                 $owner->save();
+
+                // Notify the owner of the upvote (once per user per item, no spam)
+                if ($owner->id !== $userId) {
+                    $postId = ($validated['votable_type'] === 'Post') ? (string)$votable->id : (string)($votable->post_id ?? '');
+                    $alreadyNotified = \App\Models\Notification::where('user_id', $owner->id)
+                        ->where('from_user_id', $userId)
+                        ->where('type', 'upvote')
+                        ->where('post_id', $postId)
+                        ->exists();
+                    if (!$alreadyNotified) {
+                        \App\Models\Notification::create([
+                            'user_id'      => $owner->id,
+                            'from_user_id' => $userId,
+                            'type'         => 'upvote',
+                            'post_id'      => $postId,
+                        ]);
+                    }
+                }
             }
         }
 
@@ -134,15 +152,5 @@ class VoteController extends Controller
         }
 
         return back();
-    }
-
-    private function updateQualityScore(Post $post)
-    {
-        $votes     = (int)($post->upvotes ?? 0) - (int)($post->downvotes ?? 0);
-        $depths    = $post->comments()->pluck('depth');
-        $maxDepth  = $depths->isEmpty() ? 0 : (int)$depths->max();
-
-        $post->quality_score = ($votes * 2) + ($maxDepth * 5);
-        $post->save();
     }
 }

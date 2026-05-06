@@ -36,7 +36,7 @@
                     <div style="padding: 4px 14px; font-size: .75rem; font-weight: 700; color: #8b949e; text-transform: uppercase; letter-spacing: .5px;">Posts</div>
                     <template x-for="post in results.posts" :key="post.id">
                         <a :href="post.url" class="ts-search-item">
-                            <span style="font-size: 1.05rem;">💬</span>
+                            <i class="fa-regular fa-comment" style="color:#ffa657;width:16px;text-align:center;"></i>
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-size: .85rem; font-weight: 600; color: #d4d9e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" x-text="post.title"></div>
                                 <div style="font-size: .75rem; color: #6b7280;" x-text="post.intent"></div>
@@ -52,7 +52,7 @@
                     <div style="padding: 4px 14px; font-size: .75rem; font-weight: 700; color: #8b949e; text-transform: uppercase; letter-spacing: .5px;">Communities</div>
                     <template x-for="comm in results.communities" :key="comm.id">
                         <a :href="comm.url" class="ts-search-item">
-                            <span style="font-size: 1.05rem;">🌐</span>
+                            <i class="fa-solid fa-people-group" style="color:#a371f7;width:16px;text-align:center;"></i>
                             <div style="font-size: .85rem; font-weight: 600; color: #d4d9e0;" x-text="comm.name"></div>
                         </a>
                     </template>
@@ -111,7 +111,9 @@ document.addEventListener('alpine:init', () => {
 
         async fetchResults() {
             try {
-                const response = await fetch('/search?q=' + encodeURIComponent(this.query));
+                const response = await fetch('/search?q=' + encodeURIComponent(this.query), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
                 const data = await response.json();
                 this.results = data;
             } catch (error) {

@@ -11,9 +11,34 @@
         </a>
 
         <!-- Nav Links -->
-        <div class="ts-nav-links hidden sm:flex">
+        <div class="ts-nav-links">
             <a href="{{ route('home') }}" class="ts-nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
-            <a href="{{ route('communities.index') }}" class="ts-nav-link {{ request()->routeIs('communities.*') ? 'active' : '' }}">Communities</a>
+            @auth
+            @php
+                $unreadCount = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count();
+            @endphp
+            <a href="{{ route('notifications.index') }}" class="ts-nav-link {{ request()->routeIs('notifications.index') ? 'active' : '' }}" style="position:relative;">
+                Notifications
+                @if($unreadCount > 0)
+                    <span style="position:absolute;top:2px;right:-2px;width:14px;height:14px;background:#f85149;border-radius:50%;color:white;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #161b22;">
+                        {{ $unreadCount > 9 ? '9+' : $unreadCount }}
+                    </span>
+                @endif
+            </a>
+            
+            @php
+                // Count unread messages
+                $unreadMsgs = \App\Models\Message::where('receiver_id', auth()->id())->where('is_read', false)->count();
+            @endphp
+            <a href="{{ route('messages.index') }}" class="ts-nav-link {{ request()->routeIs('messages.*') ? 'active' : '' }}" style="position:relative;">
+                Messages
+                @if($unreadMsgs > 0)
+                    <span style="position:absolute;top:2px;right:-2px;width:14px;height:14px;background:#f85149;border-radius:50%;color:white;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #161b22;">
+                        {{ $unreadMsgs > 9 ? '9+' : $unreadMsgs }}
+                    </span>
+                @endif
+            </a>
+            @endauth
         </div>
 
         <x-global-search />
@@ -40,7 +65,8 @@
                         </button>
                     </x-slot>
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">Profile</x-dropdown-link>
+                        <x-dropdown-link :href="route('profile.show', Auth::user()->id)">My Profile</x-dropdown-link>
+                        <x-dropdown-link :href="route('profile.edit')">Settings</x-dropdown-link>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">Log Out</x-dropdown-link>

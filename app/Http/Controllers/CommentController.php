@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use App\Models\Comment;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 
 class CommentController extends Controller
@@ -16,6 +17,7 @@ class CommentController extends Controller
         ]);
 
         $depth = 0;
+        $parent = null;
         if (!empty($validated['parent_id'])) {
             $parent = Comment::find($validated['parent_id']);
             $depth = $parent ? $parent->depth + 1 : 0;
@@ -31,6 +33,28 @@ class CommentController extends Controller
             'downvotes' => 0,
             'is_best_answer' => false,
         ]);
+
+        $post->refreshQualityScore();
+
+        // Notify the post owner (if it's not themselves commenting)
+        if ($post->user_id && $post->user_id !== auth()->id()) {
+            Notification::create([
+                'user_id'      => $post->user_id,
+                'from_user_id' => auth()->id(),
+                'type'         => 'comment',
+                'post_id'      => (string) $post->id,
+            ]);
+        }
+
+        // If this is a reply, also notify the parent comment's author
+        if ($parent && $parent->user_id && $parent->user_id !== auth()->id() && $parent->user_id !== $post->user_id) {
+            Notification::create([
+                'user_id'      => $parent->user_id,
+                'from_user_id' => auth()->id(),
+                'type'         => 'reply',
+                'post_id'      => (string) $post->id,
+            ]);
+        }
 
         return back()->with('success', 'Comment added!');
     }

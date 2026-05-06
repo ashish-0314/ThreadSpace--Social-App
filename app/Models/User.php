@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'google_id',
         'bio',
         'reputation',
         'avatar_url',
@@ -48,5 +49,36 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function followers()
+    {
+        return $this->hasMany(Follower::class, 'user_id');
+    }
+
+    public function following()
+    {
+        return $this->hasMany(Follower::class, 'follower_id');
+    }
+
+    public function isFollowing($userId)
+    {
+        return Follower::where('follower_id', $this->id)->where('user_id', $userId)->exists();
+    }
+
+    public function connectionStatus($userId)
+    {
+        $conn = Connection::where(function($q) use ($userId) {
+            $q->where('user_id', $this->id)->where('connected_user_id', $userId);
+        })->orWhere(function($q) use ($userId) {
+            $q->where('user_id', $userId)->where('connected_user_id', $this->id);
+        })->first();
+
+        return $conn ? $conn->status : null;
+    }
+
+    public function isConnectedWith($userId)
+    {
+        return $this->connectionStatus($userId) === 'accepted';
     }
 }

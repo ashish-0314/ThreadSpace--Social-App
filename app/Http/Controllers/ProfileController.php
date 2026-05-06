@@ -8,9 +8,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use App\Models\Post;
+use App\Models\Vote;
+use App\Models\Comment;
+use App\Models\User;
 
 class ProfileController extends Controller
 {
+    // Activity method removed, logic merged into show()
+
     /**
      * Display the user's profile form.
      */
@@ -69,6 +75,57 @@ class ProfileController extends Controller
         $request->user()->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    }
+
+    public function show(Request $request, User $user): View
+    {
+        $tab = $request->query('tab', 'posts');
+        $isOwner = Auth::check() && Auth::id() === $user->id;
+
+        // Secure private tabs
+        if (in_array($tab, ['upvoted', 'downvoted', 'settings']) && !$isOwner) {
+            $tab = 'posts';
+        }
+
+        $items = collect();
+
+        if ($tab === 'posts') {
+            $items = Post::with(['community'])
+                ->where('user_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+        } elseif ($tab === 'upvoted') {
+            $postIds = Vote::where('user_id', $user->id)
+                ->where('votable_type', 'App\Models\Post')
+                ->where('value', 1)
+                ->pluck('votable_id');
+            
+            $items = Post::with(['community', 'user'])
+                ->whereIn('_id', $postIds)
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+        } elseif ($tab === 'downvoted') {
+            $postIds = Vote::where('user_id', $user->id)
+                ->where('votable_type', 'App\Models\Post')
+                ->where('value', -1)
+                ->pluck('votable_id');
+            
+            $items = Post::with(['community', 'user'])
+                ->whereIn('_id', $postIds)
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+        } elseif ($tab === 'comments') {
+            $postIds = Comment::where('user_id', $user->id)
+                ->pluck('post_id')
+                ->unique();
+            
+            $items = Post::with(['community', 'user'])
+                ->whereIn('_id', $postIds)
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+        }
+
+        return view('profile.show', compact('user', 'items', 'tab', 'isOwner'));
     }
 
     /**

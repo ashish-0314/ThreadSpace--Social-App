@@ -47,6 +47,24 @@ class PostController extends Controller
         return view('home', compact('posts', 'sort', 'userVotes'));
     }
 
+    public function myPosts(Request $request)
+    {
+        $sort = $request->query('sort', 'latest');
+        $query = Post::with(['community'])
+            ->where('user_id', auth()->id());
+
+        if ($sort === 'top') {
+            $query->orderBy('upvotes', 'desc');
+        } elseif ($sort === 'trending') {
+            $query->orderBy('quality_score', 'desc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $posts = $query->paginate(15);
+        return view('posts.my-posts', compact('posts', 'sort'));
+    }
+
     public function create(Community $community)
     {
         return view('posts.create', compact('community'));
@@ -250,7 +268,98 @@ class PostController extends Controller
             'quality_score'   => 0,
         ]);
 
+        // Notify the original post owner
+        if ($original->user_id && $original->user_id !== auth()->id()) {
+            \App\Models\Notification::create([
+                'user_id'      => $original->user_id,
+                'from_user_id' => auth()->id(),
+                'type'         => 'repost',
+                'post_id'      => (string) $original->id,
+            ]);
+        }
+
         return redirect()->route('posts.show', $repost)
             ->with('success', 'Reposted successfully!');
+    }
+
+    // ── Edit & Update ──────────────────────────────────────────
+    public function edit(Post $post)
+    {
+        abort_if(auth()->id() != $post->user_id, 403, 'You can only edit your own posts.');
+        return view('posts.edit', compact('post'));
+    }
+
+    public function update(Request $request, Post $post)
+    {
+        abort_if(auth()->id() != $post->user_id, 403, 'You can only edit your own posts.');
+
+        $validated = $request->validate([
+            'title'        => 'required|string|max:255',
+            'content'      => 'nullable|string',
+            'intent'       => 'required|in:Question,Discussion,Tutorial,Opinion',
+            'delete_media' => 'nullable|array',
+            'delete_media.*'=> 'integer',
+            'new_media'    => 'nullable|array|max:10',
+            'new_media.*'  => 'file|mimes:jpeg,png,jpg,gif,mp4,mov,avi,mp3,wav,webp|max:20480',
+        ]);
+
+        // 1) Remove checked media items
+        $mediaList = $post->media ?? [];
+        if (!empty($validated['delete_media'])) {
+            $toDelete = array_map('intval', $validated['delete_media']);
+            $mediaList = array_values(
+                array_filter($mediaList, fn($_, $i) => !in_array($i, $toDelete), ARRAY_FILTER_USE_BOTH)
+            );
+        }
+
+        // 2) Upload new media files
+        if ($request->hasFile('new_media')) {
+            try {
+                $imageKit = new \ImageKit\ImageKit(
+                    config('imagekit.public_key'),
+                    config('imagekit.private_key'),
+                    config('imagekit.url_endpoint')
+                );
+                foreach ($request->file('new_media') as $file) {
+                    $mime = $file->getMimeType();
+                    $mediaType = 'image';
+                    if (str_starts_with($mime, 'video/')) $mediaType = 'video';
+                    elseif (str_starts_with($mime, 'audio/')) $mediaType = 'audio';
+
+                    $uploadResponse = $imageKit->uploadFile([
+                        'file'     => base64_encode(file_get_contents($file->path())),
+                        'fileName' => time() . '_' . $file->getClientOriginalName(),
+                        'folder'   => '/threadspace_posts',
+                    ]);
+
+                    if (isset($uploadResponse->result->url)) {
+                        $mediaList[] = [
+                            'url'  => $uploadResponse->result->url,
+                            'type' => $mediaType,
+                            'mime' => $mime,
+                        ];
+                    }
+                }
+            } catch (\Exception $e) {
+                return back()->withInput()->withErrors(['new_media' => 'Upload failed: ' . $e->getMessage()]);
+            }
+        }
+
+        $post->update([
+            'title'   => $validated['title'],
+            'content' => $validated['content'] ?? $post->content,
+            'intent'  => $validated['intent'],
+            'media'   => $mediaList,
+        ]);
+
+        return redirect()->route('posts.show', $post)->with('success', 'Post updated successfully!');
+    }
+
+    // ── Delete ─────────────────────────────────────────────────
+    public function destroy(Post $post)
+    {
+        abort_if(auth()->id() != $post->user_id, 403, 'You can only delete your own posts.');
+        $post->delete();
+        return redirect()->route('home')->with('success', 'Post deleted.');
     }
 }

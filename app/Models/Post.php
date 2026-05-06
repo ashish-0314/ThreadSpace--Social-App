@@ -55,4 +55,14 @@ class Post extends Model
     {
         return $this->morphMany(Vote::class, 'votable');
     }
+
+    public function refreshQualityScore()
+    {
+        $netVotes = (int)$this->upvotes - (int)$this->downvotes;
+        $commentCount = $this->comments()->count();
+
+        // Trending Algorithm: (Net Votes * 2) + (Comments * 5)
+        $this->quality_score = ($netVotes * 2) + ($commentCount * 5);
+        $this->save();
+    }
 }

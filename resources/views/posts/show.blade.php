@@ -10,13 +10,44 @@
             @else
                 <div class="pc-avatar">{{ strtoupper(substr($post->user->name ?? 'U', 0, 1)) }}</div>
             @endif
-            <span class="pc-author">u/{{ $post->user->name ?? 'Unknown' }}</span>
+            <a href="{{ route('profile.show', $post->user_id) }}" class="pc-author" style="text-decoration:none;color:inherit;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+                u/{{ $post->user->name ?? 'Unknown' }}
+            </a>
             <span class="pc-dot">•</span>
             <span class="pc-time">{{ $post->created_at->diffForHumans() }}</span>
             @if($post->community)
                 <span class="pc-dot">·</span>
                 <a href="{{ route('communities.show', $post->community->slug) }}" class="pc-comm">c/{{ $post->community->name }}</a>
             @endif
+
+            {{-- Networking Buttons --}}
+            @auth
+            @if(auth()->id() !== $post->user_id)
+                @php
+                    $isFollowing = auth()->user()->isFollowing($post->user_id);
+                    $connStatus = auth()->user()->connectionStatus($post->user_id);
+                @endphp
+                <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                    <form method="POST" action="{{ route('network.follow', $post->user_id) }}">
+                        @csrf
+                        <button type="submit" style="padding:4px 12px;border-radius:15px;font-size:.75rem;font-weight:700;cursor:pointer;border:1px solid #30363d;
+                            {{ $isFollowing ? 'background:transparent;color:#8b949e;' : 'background:#2f81f7;color:white;border-color:#2f81f7;' }}">
+                            {{ $isFollowing ? 'Following' : 'Follow' }}
+                        </button>
+                    </form>
+                    
+                    @if($connStatus !== 'accepted')
+                        <form method="POST" action="{{ route('network.connect', $post->user_id) }}">
+                            @csrf
+                            <button type="submit" style="padding:4px 12px;border-radius:15px;font-size:.75rem;font-weight:700;cursor:pointer;background:transparent;border:1px solid #2f81f7;color:#2f81f7;"
+                                    {{ $connStatus === 'pending' ? 'disabled style=border-color:#30363d;color:#8b949e;' : '' }}>
+                                {{ $connStatus === 'pending' ? 'Pending' : '+ Connect' }}
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            @endif
+            @endauth
         </div>
 
         <!-- Title -->
@@ -127,6 +158,47 @@
             </div>
         </div>
     </div>
+
+    @auth
+    @if(auth()->id() == $post->user_id)
+    {{-- Owner action bar --}}
+    <div x-data="{ showDelete: false }" style="display:flex;gap:10px;margin-bottom:16px;">
+        <a href="{{ route('posts.edit', $post) }}"
+           style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;background:#21262d;border:1px solid #30363d;color:#d4d9e0;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .15s;"
+           onmouseover="this.style.background='#30363d'" onmouseout="this.style.background='#21262d'">
+            ✏️ Edit Post
+        </a>
+        <button @click="showDelete=true"
+                style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;background:#21262d;border:1px solid #30363d;color:#f85149;font-size:.82rem;font-weight:700;cursor:pointer;transition:background .15s;"
+                onmouseover="this.style.background='#30363d'" onmouseout="this.style.background='#21262d'">
+            🗑 Delete Post
+        </button>
+
+        {{-- Delete confirmation modal --}}
+        <div x-show="showDelete" x-transition
+             style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:center;justify-content:center;"
+             @click.self="showDelete=false">
+            <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:28px 32px;max-width:420px;width:90%;text-align:center;">
+                <p style="font-size:1.25rem;font-weight:800;color:#f0f6fc;margin-bottom:8px;">Delete this post?</p>
+                <p style="font-size:.9rem;color:#8b949e;margin-bottom:24px;">This action cannot be undone. The post and all its comments will be permanently removed.</p>
+                <div style="display:flex;justify-content:center;gap:12px;">
+                    <button @click="showDelete=false"
+                            style="padding:10px 24px;border-radius:10px;background:#21262d;border:1px solid #30363d;color:#d4d9e0;font-weight:700;cursor:pointer;">
+                        Cancel
+                    </button>
+                    <form method="POST" action="{{ route('posts.destroy', $post) }}">
+                        @csrf @method('DELETE')
+                        <button type="submit"
+                                style="padding:10px 24px;border-radius:10px;background:#da3633;border:none;color:white;font-weight:700;cursor:pointer;">
+                            Yes, Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+    @endauth
 
     <!-- Comments Section -->
     <div style="padding:4px 0;">

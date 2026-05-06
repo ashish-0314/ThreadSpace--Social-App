@@ -16,6 +16,8 @@
 
         <!-- ThreadSpace Custom Styles -->
         <link rel="stylesheet" href="{{ asset('css/threadspace.css') }}">
+        <!-- Font Awesome Icons -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     </head>
     <body class="font-sans antialiased" style="background:#111827;">
         <div class="min-h-screen">

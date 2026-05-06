@@ -9,8 +9,15 @@
         @else
             <div class="pc-avatar" style="width:22px;height:22px;font-size:.58rem;">{{ strtoupper(substr($post->user->name ?? 'U', 0, 1)) }}</div>
         @endif
-        <span style="font-size:.78rem;color:#8b949e;">
-            <span style="font-weight:600;color:#d4d9e0;">u/{{ $post->user->name ?? 'Unknown' }}</span>
+        <span style="font-size:.78rem;color:#8b949e;display:flex;align-items:center;">
+            <div x-data="{ popoverOpen: false, html: '', loading: false, loadCard() { if(this.html) return; this.loading = true; fetch('/api/users/{{ $post->user_id }}/card').then(r => r.text()).then(h => { this.html = h; this.loading = false; }); } }"
+                 @click.outside="popoverOpen = false" style="position:relative;display:inline-block;">
+                <span @click="popoverOpen = !popoverOpen; loadCard()" style="font-weight:600;color:#d4d9e0;cursor:pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">u/{{ $post->user->name ?? 'Unknown' }}</span>
+                <div x-show="popoverOpen" x-transition style="position:absolute; top:100%; left:0; z-index:100; margin-top:8px;">
+                    <template x-if="loading"><div style="width:200px;padding:16px;background:#161b22;border:1px solid #30363d;border-radius:12px;color:#8b949e;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5);">Loading...</div></template>
+                    <div x-html="html"></div>
+                </div>
+            </div>
             &nbsp;↺ reposted
             <span style="color:#6b7280;">•</span>
             {{ $post->created_at->diffForHumans() }}
@@ -23,13 +30,20 @@
 
     {{-- ── Normal post header (non-repost) ────────────── --}}
     @if(!$post->is_repost)
-    <div class="pc-header">
+    <div class="pc-header" style="overflow: visible;">
         @if($post->user && $post->user->avatar_url)
             <img src="{{ $post->user->avatar_url }}" class="pc-avatar" style="object-fit:cover;border:none;">
         @else
             <div class="pc-avatar">{{ strtoupper(substr($post->user->name ?? 'U', 0, 1)) }}</div>
         @endif
-        <span class="pc-author">u/{{ $post->user->name ?? 'Unknown' }}</span>
+        <div x-data="{ popoverOpen: false, html: '', loading: false, loadCard() { if(this.html) return; this.loading = true; fetch('/api/users/{{ $post->user_id }}/card').then(r => r.text()).then(h => { this.html = h; this.loading = false; }); } }"
+             @click.outside="popoverOpen = false" style="position:relative;display:flex;align-items:center;">
+            <span @click="popoverOpen = !popoverOpen; loadCard()" class="pc-author" style="cursor:pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">u/{{ $post->user->name ?? 'Unknown' }}</span>
+            <div x-show="popoverOpen" x-transition style="position:absolute; top:100%; left:0; z-index:100; margin-top:8px;">
+                <template x-if="loading"><div style="width:200px;padding:16px;background:#161b22;border:1px solid #30363d;border-radius:12px;color:#8b949e;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5);">Loading...</div></template>
+                <div x-html="html"></div>
+            </div>
+        </div>
         <span class="pc-dot">•</span>
         <span class="pc-time">{{ $post->created_at->diffForHumans() }}</span>
         @if($post->community)
@@ -59,7 +73,14 @@
                             {{ strtoupper(substr($orig->user->name ?? 'U', 0, 1)) }}
                         </div>
                     @endif
-                    <span style="font-size:.76rem;font-weight:600;color:#8b949e;">u/{{ $orig->user->name ?? 'Unknown' }}</span>
+                    <div x-data="{ popoverOpen: false, html: '', loading: false, loadCard() { if(this.html) return; this.loading = true; fetch('/api/users/{{ $orig->user_id }}/card').then(r => r.text()).then(h => { this.html = h; this.loading = false; }); } }"
+                         @click.prevent="popoverOpen = !popoverOpen; loadCard()" @click.outside="popoverOpen = false" style="position:relative;display:flex;align-items:center;">
+                        <span style="font-size:.76rem;font-weight:600;color:#8b949e;cursor:pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">u/{{ $orig->user->name ?? 'Unknown' }}</span>
+                        <div x-show="popoverOpen" x-transition style="position:absolute; top:100%; left:0; z-index:100; margin-top:8px;" @click.prevent>
+                            <template x-if="loading"><div style="width:200px;padding:16px;background:#161b22;border:1px solid #30363d;border-radius:12px;color:#8b949e;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5);">Loading...</div></template>
+                            <div x-html="html"></div>
+                        </div>
+                    </div>
                     <span style="color:#374151;font-size:.72rem;">•</span>
                     <span style="font-size:.74rem;color:#6b7280;">{{ $orig->created_at->diffForHumans() }}</span>
                     @if($orig->community)
