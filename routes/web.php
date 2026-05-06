@@ -26,7 +26,6 @@ Route::middleware('auth')->group(function () {
 
     // Messaging
     Route::get('/messages/{userId?}', [MessageController::class, 'index'])->name('messages.index')->where('userId', '[0-9a-fA-F]{24}');
-    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
 
     // Settings route mapping to unified profile dashboard
