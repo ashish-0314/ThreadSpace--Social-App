@@ -71,23 +71,7 @@ class PostController extends Controller
         return view('home', compact('posts', 'sort', 'userVotes', 'trendingCommunities', 'suggestedUsers', 'userStats'));
     }
 
-    public function myPosts(Request $request)
-    {
-        $sort = $request->query('sort', 'latest');
-        $query = Post::with(['community'])
-            ->where('user_id', auth()->id());
 
-        if ($sort === 'top') {
-            $query->orderBy('upvotes', 'desc');
-        } elseif ($sort === 'trending') {
-            $query->orderBy('quality_score', 'desc');
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-
-        $posts = $query->paginate(15);
-        return view('posts.my-posts', compact('posts', 'sort'));
-    }
 
     public function create(Community $community)
     {

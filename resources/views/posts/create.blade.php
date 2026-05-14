@@ -61,9 +61,47 @@
         letter-spacing: 0.8px;
     }
     .flair-radio:checked + label {
-        border-color: #58a6ff;
-        color: #58a6ff;
-        background: rgba(88, 166, 255, 0.05);
+        border-color: #58a6ff !important;
+        color: #58a6ff !important;
+        background: rgba(88, 166, 255, 0.05) !important;
+    }
+    .flair-label {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: 1px solid #30363d;
+        font-size: 0.8rem;
+        font-weight: 400;
+        color: #8b949e;
+        transition: all 0.2s;
+        background: #050816;
+    }
+    .tab-btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: transparent;
+        border-bottom: 2px solid transparent;
+        color: #6e7681;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .tab-btn:hover {
+        color: #c9d1d9;
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .tab-btn.active {
+        border-bottom: 2px solid #58a6ff;
+        color: #f0f6fc;
+        background: #0d1117;
     }
     .submit-btn {
         background: #f0f6fc;
@@ -117,7 +155,7 @@
                         @foreach(['Discussion','Question','Tutorial','Opinion'] as $intent)
                         <div style="position: relative;">
                             <input type="radio" id="intent_{{ $intent }}" name="intent" value="{{ $intent }}" class="flair-radio" {{ old('intent','Discussion') === $intent ? 'checked' : '' }} style="position:absolute; opacity:0; width:0; height:0;">
-                            <label for="intent_{{ $intent }}" style="display:inline-flex;align-items:center;cursor:pointer;padding:6px 14px;border-radius:6px;border:1px solid #30363d;font-size:.8rem;font-weight:400;color:#8b949e;transition:all .2s;background:#050816;">
+                            <label for="intent_{{ $intent }}" class="flair-label">
                                 {{ $intent }}
                             </label>
                         </div>
@@ -130,12 +168,18 @@
                 <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden;" x-data="{ fileName: '' }">
                     <!-- Tab bar -->
                     <div style="display:flex; border-bottom: 1px solid #30363d;">
-                        @foreach(['text' => 'Text', 'media' => 'Media', 'link' => 'Link'] as $type => $label)
+                        @php
+                            $tabs = [
+                                'text' => ['label' => 'Text', 'icon' => '<i class="fa-solid fa-align-left"></i>'],
+                                'media' => ['label' => 'Media', 'icon' => '<i class="fa-regular fa-image"></i>'],
+                                'link' => ['label' => 'Link', 'icon' => '<i class="fa-solid fa-link"></i>']
+                            ];
+                        @endphp
+                        @foreach($tabs as $type => $data)
                         <button type="button"
                                 @click="tab = '{{ $type }}'"
-                                :style="tab === '{{ $type }}' ? 'border-bottom: 1px solid #58a6ff; color: #c9d1d9; background: #0d1117;' : 'border-bottom: 1px solid transparent; color: #6e7681;'"
-                                style="flex:1; padding: 10px; border: none; font-size: 0.85rem; font-weight: 400; cursor: pointer; transition: all 0.2s; background: transparent;">
-                            {{ $label }}
+                                :class="tab === '{{ $type }}' ? 'tab-btn active' : 'tab-btn'">
+                            {!! $data['icon'] !!} {{ $data['label'] }}
                         </button>
                         @endforeach
                     </div>

@@ -76,7 +76,7 @@
                     @endforeach
                 </div>
             @elseif($post->type === 'link' && $post->content)
-                <a href="{{ $post->content }}" target="_blank" class="text-link" style="font-size:.88rem;word-break:break-all;">🔗 {{ $post->content }}</a>
+                <a href="{{ $post->content }}" target="_blank" class="text-link" style="font-size:.88rem;word-break:break-all;"><i class="fa-solid fa-link"></i> {{ $post->content }}</a>
             @endif
         </div>
 
@@ -87,8 +87,8 @@
                     <svg width="14" height="14" fill="none" stroke="#8b949e" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                     AI Thread Summary
                 </span>
-                <button @click="summarize('{{ route('posts.summarize', $post) }}')" :disabled="loading" class="btn-fill" style="font-size:.75rem;padding:4px 12px;">
-                    <span x-show="!loading">✨ Generate</span>
+                <button @click="summarize('{{ route('posts.summarize', $post) }}')" :disabled="loading" class="btn-fill" style="font-size:.75rem;padding:4px 12px;display:inline-flex;align-items:center;gap:4px;">
+                    <span x-show="!loading"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate</span>
                     <span x-show="loading">...</span>
                 </button>
             </div>
@@ -131,7 +131,7 @@
             {{-- Share dropdown --}}
             <div style="position:relative;" x-data="{ shareOpen: false }" @click.outside="shareOpen=false">
                 <button class="act-pill" @click="shareOpen=!shareOpen" style="border:none;">
-                    ↗ Share
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right:4px;"></i> Share
                     <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <div x-show="shareOpen" x-transition
@@ -139,13 +139,13 @@
                     <button onclick="navigator.clipboard.writeText(window.location.href).then(()=>alert('Link copied!'))"
                             style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;background:transparent;border:none;border-radius:7px;cursor:pointer;color:#d4d9e0;font-size:.82rem;font-weight:600;transition:background .15s;"
                             onmouseover="this.style.background='#21262d'" onmouseout="this.style.background='transparent'">
-                        📋 Copy Link
+                        <i class="fa-regular fa-clipboard" style="font-size:1rem;width:16px;"></i> Copy Link
                     </button>
                     @auth
                     <a href="{{ route('posts.repost.form', $post) }}"
                        style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;background:transparent;border-radius:7px;color:#d4d9e0;font-size:.82rem;font-weight:600;transition:background .15s;"
                        onmouseover="this.style.background='#21262d'" onmouseout="this.style.background='transparent'">
-                        ↺ Repost
+                        <i class="fa-solid fa-retweet" style="font-size:1rem;width:16px;"></i> Repost
                     </a>
                     @else
                     <a href="{{ route('login') }}"
@@ -166,12 +166,12 @@
         <a href="{{ route('posts.edit', $post) }}"
            style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;background:#21262d;border:1px solid #30363d;color:#d4d9e0;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .15s;"
            onmouseover="this.style.background='#30363d'" onmouseout="this.style.background='#21262d'">
-            ✏️ Edit Post
+            <i class="fa-solid fa-pen"></i> Edit Post
         </a>
         <button @click="showDelete=true"
                 style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;background:#21262d;border:1px solid #30363d;color:#f85149;font-size:.82rem;font-weight:700;cursor:pointer;transition:background .15s;"
                 onmouseover="this.style.background='#30363d'" onmouseout="this.style.background='#21262d'">
-            🗑 Delete Post
+            <i class="fa-solid fa-trash"></i> Delete Post
         </button>
 
         {{-- Delete confirmation modal --}}
@@ -205,7 +205,7 @@
         <!-- Sort + count header -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 4px;">
             <span style="font-size:.88rem;font-weight:700;color:#f0f6fc;">
-                💬 {{ $comments->count() }} Comment{{ $comments->count() !== 1 ? 's' : '' }}
+                <i class="fa-regular fa-comment" style="margin-right:6px;"></i> {{ $comments->count() }} Comment{{ $comments->count() !== 1 ? 's' : '' }}
             </span>
             <span style="font-size:.78rem;color:#6b7280;">Best · Top · New</span>
         </div>
