@@ -28,12 +28,7 @@
         @endforeach
     </div>
 
-    {{-- Flash Success --}}
-    @if(session('success'))
-        <div style="background:#0d2a1a;border:1px solid #238636;border-radius:10px;padding:12px 16px;margin-bottom:20px;color:#3fb950;font-size:.88rem;font-weight:600;display:flex;align-items:center;gap:8px;">
-            <i class="fa-solid fa-circle-check"></i> {{ session('success') }}
-        </div>
-    @endif
+
 
     {{-- Empty State --}}
     @if($posts->isEmpty())

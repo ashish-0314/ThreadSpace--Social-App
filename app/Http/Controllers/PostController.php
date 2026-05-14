@@ -44,7 +44,31 @@ class PostController extends Controller
                 ->each(fn($v) => $userVotes[(string)$v->votable_id] = (int)$v->value);
         }
 
-        return view('home', compact('posts', 'sort', 'userVotes'));
+        // Sidebar Data
+        $trendingCommunities = Community::orderBy('members_count', 'desc')->limit(5)->get();
+        
+        $suggestedUsers = collect();
+        $userStats = null;
+        if (auth()->check()) {
+            $suggestedUsers = \App\Models\User::where('_id', '!=', auth()->id())
+                ->where('email', '!=', env('ADMIN_EMAIL'))
+                ->orderBy('reputation', 'desc')
+                ->limit(5)
+                ->get();
+                
+            $userStats = [
+                'followers' => auth()->user()->followers()->count(),
+                'following' => auth()->user()->following()->count(),
+                'posts' => Post::where('user_id', auth()->id())->count(),
+            ];
+        } else {
+            $suggestedUsers = \App\Models\User::where('email', '!=', env('ADMIN_EMAIL'))
+                ->orderBy('reputation', 'desc')
+                ->limit(5)
+                ->get();
+        }
+
+        return view('home', compact('posts', 'sort', 'userVotes', 'trendingCommunities', 'suggestedUsers', 'userStats'));
     }
 
     public function myPosts(Request $request)

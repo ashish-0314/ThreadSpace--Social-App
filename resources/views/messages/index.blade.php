@@ -111,20 +111,26 @@
 
                 {{-- Message Input Form --}}
                 <div style="padding:16px 24px;border-top:1px solid #30363d;background:#0d1117;">
-                    <form action="{{ route('messages.store') }}" method="POST" style="display:flex;gap:12px;align-items:flex-end;">
-                        @csrf
-                        <input type="hidden" name="receiver_id" value="{{ $activeUser->id }}">
-                        
-                        <div style="flex:1;background:#161b22;border:1px solid #30363d;border-radius:24px;padding:8px 16px;display:flex;align-items:center;">
-                            <input type="text" name="body" placeholder="Message {{ $activeUser->name }}..." required autocomplete="off"
-                                   style="width:100%;background:transparent;border:none;color:#f0f6fc;font-size:.95rem;outline:none;padding:4px 0;">
+                    @if(isset($canReply) && $canReply)
+                        <form action="{{ route('messages.store') }}" method="POST" style="display:flex;gap:12px;align-items:flex-end;">
+                            @csrf
+                            <input type="hidden" name="receiver_id" value="{{ $activeUser->id }}">
+                            
+                            <div style="flex:1;background:#161b22;border:1px solid #30363d;border-radius:24px;padding:8px 16px;display:flex;align-items:center;">
+                                <input type="text" name="body" placeholder="Message {{ $activeUser->name }}..." required autocomplete="off"
+                                       style="width:100%;background:transparent;border:none;color:#f0f6fc;font-size:.95rem;outline:none;padding:4px 0;">
+                            </div>
+                            
+                            <button type="submit" style="width:40px;height:40px;border-radius:50%;background:#2f81f7;border:none;color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;"
+                                    onmouseover="this.style.background='#388bfd'" onmouseout="this.style.background='#2f81f7'">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </button>
+                        </form>
+                    @else
+                        <div style="text-align:center;color:#8b949e;font-size:0.9rem;padding:8px 0;">
+                            You must be connected to reply.
                         </div>
-                        
-                        <button type="submit" style="width:40px;height:40px;border-radius:50%;background:#2f81f7;border:none;color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;"
-                                onmouseover="this.style.background='#388bfd'" onmouseout="this.style.background='#2f81f7'">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                        </button>
-                    </form>
+                    @endif
                 </div>
             @endif
         </div>

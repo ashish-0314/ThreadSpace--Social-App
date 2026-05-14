@@ -1,64 +1,73 @@
-@section('title', 'Communities')
+@section('title', 'Explore Communities')
 <x-app-layout>
-    <div class="py-8" style="min-height:100vh;background:#111827;">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div style="min-height:100vh;padding:40px 0;">
+        <div style="max-width:1200px;margin:0 auto;padding:0 20px;">
 
             <!-- Header -->
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:32px;gap:16px;">
                 <div>
-                    <h1 style="font-size:1.8rem;font-weight:800;color:#f3f4f6;margin:0;">Explore Communities</h1>
-                    <p style="color:#6b7280;font-size:0.9rem;margin-top:4px;">Find your people. Join discussions that matter to you.</p>
+                    <h1 style="font-size:2rem;font-weight:800;color:#f0f6fc;margin:0 0 4px;letter-spacing:-0.5px;">Explore Communities</h1>
+                    <p style="color:#8b949e;font-size:0.95rem;margin:0;">Find your people. Join discussions that matter to you.</p>
                 </div>
                 @auth
-                <a href="{{ route('communities.create') }}" class="btn-primary">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Create Community
-                </a>
+                    @if(!auth()->user()->isAdmin())
+                    <a href="{{ route('communities.create') }}" class="btn-fill" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;font-size:0.9rem;">
+                        <i class="fa-solid fa-plus"></i> Create Community
+                    </a>
+                    @endif
                 @endauth
             </div>
 
             <!-- Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:24px;">
                 @forelse($communities as $community)
-                <div class="community-card">
-                    <!-- Avatar -->
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                        <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:white;flex-shrink:0;">
+                <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:24px;transition:all 0.2s;" onmouseover="this.style.borderColor='#484f58';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#30363d';this.style.transform='none'">
+                    <!-- Avatar & Title -->
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+                        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#6366f1);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;color:white;flex-shrink:0;">
                             {{ strtoupper(substr($community->name, 0, 1)) }}
                         </div>
-                        <div>
-                            <a href="{{ route('communities.show', $community->slug) }}" style="font-size:1rem;font-weight:700;color:#f3f4f6;text-decoration:none;display:block;transition:color 0.15s;" onmouseover="this.style.color='#a5b4fc'" onmouseout="this.style.color='#f3f4f6'">c/{{ $community->name }}</a>
-                            <span style="font-size:0.75rem;color:#6b7280;">{{ $community->members_count ?? 0 }} members • {{ $community->posts_count ?? 0 }} posts</span>
+                        <div style="overflow:hidden;">
+                            <a href="{{ route('communities.show', $community->slug) }}" style="font-size:1.1rem;font-weight:700;color:#f0f6fc;text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color 0.2s;" onmouseover="this.style.color='#58a6ff'" onmouseout="this.style.color='#f0f6fc'">c/{{ $community->name }}</a>
+                            <span style="font-size:0.8rem;color:#8b949e;">{{ $community->members_count ?? 0 }} members • {{ $community->posts_count ?? 0 }} posts</span>
                         </div>
                     </div>
 
-                    <p style="font-size:0.85rem;color:#9ca3af;line-height:1.6;margin-bottom:16px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">{{ $community->description }}</p>
+                    <!-- Description -->
+                    <p style="font-size:0.9rem;color:#c9d1d9;line-height:1.6;margin-bottom:24px;height:4.8em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">{{ $community->description }}</p>
 
                     <!-- Actions -->
-                    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
-                        <a href="{{ route('communities.show', $community->slug) }}" class="action-btn" style="padding:6px 12px;">View Posts →</a>
+                    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #21262d;padding-top:16px;">
+                        <a href="{{ route('communities.show', $community->slug) }}" style="color:#58a6ff;font-size:0.85rem;font-weight:600;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='#79c0ff'" onmouseout="this.style.color='#58a6ff'">View Posts →</a>
 
                         @auth
-                            @if(in_array($community->id, auth()->user()->joined_communities ?? []))
-                                <form action="{{ route('communities.leave', $community) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="btn-secondary" style="font-size:0.8rem;padding:6px 14px;">✓ Joined</button>
-                                </form>
-                            @else
-                                <form action="{{ route('communities.join', $community) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="btn-primary" style="font-size:0.8rem;padding:6px 14px;">+ Join</button>
-                                </form>
+                            @if(!auth()->user()->isAdmin())
+                                @if(in_array($community->id, auth()->user()->joined_communities ?? []))
+                                    <form action="{{ route('communities.leave', $community) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" style="background:transparent;border:1px solid #30363d;color:#8b949e;padding:6px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#f85149';this.style.color='#f85149'" onmouseout="this.style.borderColor='#30363d';this.style.color='#8b949e'">Leave</button>
+                                    </form>
+                                @else
+                                    <form action="{{ route('communities.join', $community) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" style="background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:6px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#30363d';this.style.color='#f0f6fc'" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9'">Join</button>
+                                    </form>
+                                @endif
                             @endif
                         @endauth
                     </div>
                 </div>
                 @empty
-                    <div class="col-span-3" style="text-align:center;padding:60px 20px;background:#1e2433;border:1px solid rgba(255,255,255,0.07);border-radius:14px;">
-                        <div style="font-size:3rem;margin-bottom:12px;">🏘️</div>
-                        <p style="color:#6b7280;font-size:1rem;margin-bottom:16px;">No communities yet. Be the first to create one!</p>
+                    <div style="grid-column:1 / -1;text-align:center;padding:80px 20px;background:#161b22;border:1px solid #30363d;border-radius:16px;">
+                        <i class="fa-solid fa-compass" style="font-size:3.5rem;color:#30363d;display:block;margin-bottom:20px;"></i>
+                        <p style="color:#f0f6fc;font-weight:700;font-size:1.25rem;margin-bottom:8px;">No communities found</p>
+                        <p style="color:#8b949e;font-size:.95rem;margin-bottom:24px;">Be the first to start a new community and gather people together!</p>
                         @auth
-                        <a href="{{ route('communities.create') }}" class="btn-primary" style="display:inline-flex;">Create Community</a>
+                            @if(!auth()->user()->isAdmin())
+                            <a href="{{ route('communities.create') }}" class="btn-fill" style="display:inline-flex;padding:10px 24px;font-size:0.95rem;">
+                                <i class="fa-solid fa-plus" style="margin-right:8px;"></i> Create Community
+                            </a>
+                            @endif
                         @endauth
                     </div>
                 @endforelse

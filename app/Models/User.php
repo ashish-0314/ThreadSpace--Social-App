@@ -81,4 +81,12 @@ class User extends Authenticatable
     {
         return $this->connectionStatus($userId) === 'accepted';
     }
+
+    /**
+     * Check if the user is the administrator.
+     */
+    public function isAdmin()
+    {
+        return $this->email === env('ADMIN_EMAIL');
+    }
 }

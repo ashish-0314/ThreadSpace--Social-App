@@ -1,10 +1,10 @@
 <section>
-    <header>
-        <h2 style="font-size:1.1rem;font-weight:700;color:#f0f6fc;">
+    <header style="margin-bottom:32px;">
+        <h2 style="font-size:1.4rem;font-weight:800;color:#f0f6fc;letter-spacing:-0.5px;">
             {{ __('Profile Information') }}
         </h2>
 
-        <p style="font-size:.85rem;color:#8b949e;margin-top:4px;">
+        <p style="font-size:.95rem;color:#8b949e;margin-top:8px;">
             {{ __("Update your account's profile information and email address.") }}
         </p>
     </header>
@@ -13,19 +13,19 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6" enctype="multipart/form-data">
+    <form method="post" action="{{ route('profile.update') }}" style="display:flex;flex-direction:column;gap:24px;" enctype="multipart/form-data">
         @csrf
         @method('patch')
 
         <div>
-            <label for="name" style="display:block;font-size:.85rem;font-weight:600;color:#c9d1d9;margin-bottom:6px;">Name</label>
-            <input id="name" name="name" type="text" class="ts-input" value="{{ old('name', $user->name) }}" required autofocus autocomplete="name" />
+            <label for="name" style="display:block;font-size:.9rem;font-weight:700;color:#c9d1d9;margin-bottom:8px;">Name</label>
+            <input id="name" name="name" type="text" class="ts-input" value="{{ old('name', $user->name) }}" required autofocus autocomplete="name" style="width:100%;font-size:1rem;padding:12px 16px;border-radius:12px;" />
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
 
         <div>
-            <label for="email" style="display:block;font-size:.85rem;font-weight:600;color:#c9d1d9;margin-bottom:6px;">Email</label>
-            <input id="email" name="email" type="email" class="ts-input" value="{{ old('email', $user->email) }}" required autocomplete="username" />
+            <label for="email" style="display:block;font-size:.9rem;font-weight:700;color:#c9d1d9;margin-bottom:8px;">Email</label>
+            <input id="email" name="email" type="email" class="ts-input" value="{{ old('email', $user->email) }}" required autocomplete="username" style="width:100%;font-size:1rem;padding:12px 16px;border-radius:12px;" />
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
@@ -48,8 +48,8 @@
         </div>
 
         <div>
-            <label for="bio" style="display:block;font-size:.85rem;font-weight:600;color:#c9d1d9;margin-bottom:6px;">Bio</label>
-            <textarea id="bio" name="bio" class="ts-input" rows="4">{{ old('bio', $user->bio) }}</textarea>
+            <label for="bio" style="display:block;font-size:.9rem;font-weight:700;color:#c9d1d9;margin-bottom:8px;">Bio</label>
+            <textarea id="bio" name="bio" class="ts-input" rows="4" style="width:100%;font-size:1rem;padding:12px 16px;border-radius:12px;">{{ old('bio', $user->bio) }}</textarea>
             <x-input-error class="mt-2" :messages="$errors->get('bio')" />
         </div>
 
@@ -90,7 +90,7 @@
             <div x-show="avatarType === 'default'" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
                 <input type="hidden" name="default_avatar" :value="avatarType === 'default' ? selectedAvatar : ''">
                 @php
-                    $avatars = glob(public_path('avatars/*.png'));
+                    $avatars = glob(public_path('avatars/*.{png,jpg,jpeg,gif}'), GLOB_BRACE);
                 @endphp
                 @foreach($avatars as $avatarPath)
                     @php $avatarUrl = asset('avatars/' . basename($avatarPath)); @endphp

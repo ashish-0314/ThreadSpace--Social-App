@@ -17,7 +17,7 @@ class MessageController extends Controller
     {
         $currentUser = Auth::user();
 
-        // Get all accepted connections for the current user
+        // 1. Get all accepted connections for the current user
         $connections = Connection::where(function($q) use ($currentUser) {
                 $q->where('user_id', $currentUser->id)
                   ->orWhere('connected_user_id', $currentUser->id);
@@ -25,32 +25,46 @@ class MessageController extends Controller
             ->where('status', 'accepted')
             ->get();
 
-        // Extract the actual User models from connections
-        $chatUsers = collect();
+        $userIds = collect();
         foreach ($connections as $conn) {
-            if ($conn->user_id === $currentUser->id) {
-                $chatUsers->push(User::find($conn->connected_user_id));
-            } else {
-                $chatUsers->push(User::find($conn->user_id));
-            }
+            $userIds->push($conn->user_id === $currentUser->id ? $conn->connected_user_id : $conn->user_id);
         }
 
-        // Filter out nulls just in case users were deleted
-        $chatUsers = $chatUsers->filter();
+        // 2. Also include anyone who has sent us a message or received a message from us
+        $messagedUsers = Message::where('sender_id', $currentUser->id)
+                                ->orWhere('receiver_id', $currentUser->id)
+                                ->get();
+                                
+        foreach ($messagedUsers as $msg) {
+            $userIds->push($msg->sender_id === $currentUser->id ? $msg->receiver_id : $msg->sender_id);
+        }
+
+        $userIds = $userIds->unique();
+
+        // 3. Extract the actual User models
+        $chatUsers = User::whereIn('id', $userIds)->get();
 
         // Get the active chat user if specified
         $activeUser = null;
         $messages = collect();
+        $canReply = false;
 
         if ($userId) {
-            // Verify they are actually connected before allowing chat
-            $isConnected = $chatUsers->contains('id', $userId);
+            // Verify they are in the chat list (connected or have history)
+            $isValidChat = $chatUsers->contains('id', $userId);
             
-            if (!$isConnected) {
-                return redirect()->route('messages.index')->with('error', 'You can only message your connections.');
+            if (!$isValidChat) {
+                return redirect()->route('messages.index')->with('error', 'You can only message your connections or users with message history.');
             }
 
             $activeUser = User::findOrFail($userId);
+
+            // Check if they are CURRENTLY connected (to allow replying)
+            $canReply = Connection::where(function($q) use ($currentUser, $userId) {
+                $q->where('user_id', $currentUser->id)->where('connected_user_id', $userId);
+            })->orWhere(function($q) use ($currentUser, $userId) {
+                $q->where('user_id', $userId)->where('connected_user_id', $currentUser->id);
+            })->where('status', 'accepted')->exists();
 
             // Fetch messages between currentUser and activeUser
             $messages = Message::where(function($q) use ($currentUser, $activeUser) {
@@ -71,7 +85,7 @@ class MessageController extends Controller
                    ->update(['is_read' => true]);
         }
 
-        return view('messages.index', compact('chatUsers', 'activeUser', 'messages'));
+        return view('messages.index', compact('chatUsers', 'activeUser', 'messages', 'canReply'));
     }
 
     /**

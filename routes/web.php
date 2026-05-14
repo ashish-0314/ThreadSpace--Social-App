@@ -57,6 +57,15 @@ Route::middleware('auth')->group(function () {
 
     // Voting
     Route::post('/vote', [VoteController::class, 'vote'])->name('vote');
+
+    // Admin Panel
+    Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\AdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/users', [\App\Http\Controllers\AdminController::class, 'users'])->name('users');
+        Route::delete('/users/{user}', [\App\Http\Controllers\AdminController::class, 'destroyUser'])->name('users.destroy');
+        Route::get('/posts', [\App\Http\Controllers\AdminController::class, 'posts'])->name('posts');
+        Route::delete('/posts/{post}', [\App\Http\Controllers\AdminController::class, 'destroyPost'])->name('posts.destroy');
+    });
 });
 
 // Public read routes

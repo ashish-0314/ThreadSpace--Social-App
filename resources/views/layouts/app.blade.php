@@ -22,6 +22,7 @@
     <body class="font-sans antialiased" style="background:#111827;">
         <div class="min-h-screen">
             @include('layouts.navigation')
+            <x-flash />
 
             <!-- Page Content -->
             <main>

@@ -187,37 +187,41 @@
         </a>
 
         {{-- Share dropdown --}}
-        <div style="position:relative;" @click.outside="shareOpen=false">
-            <button class="act-pill" @click="shareOpen=!shareOpen" style="border:none;">
+        <div style="position:relative;" @click.outside="shareOpen=false" @keydown.escape.window="shareOpen=false">
+            <button class="act-pill" @click.prevent.stop="shareOpen=!shareOpen" style="border:none;">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
                 Share
                 <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
             </button>
 
             {{-- Dropdown menu --}}
-            <div x-show="shareOpen" x-transition
+            <div x-show="shareOpen" x-transition x-cloak
                  style="position:absolute;bottom:calc(100% + 6px);left:0;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:4px;min-width:180px;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.5);">
 
                 {{-- Copy Link --}}
                 <button
-                    onclick="navigator.clipboard.writeText('{{ route('posts.show', $post) }}').then(()=>{document.getElementById('copied-{{ $post->id }}').style.display='block';setTimeout(()=>document.getElementById('copied-{{ $post->id }}').style.display='none',1800)})"
+                    @click.stop="navigator.clipboard.writeText('{{ route('posts.show', $post) }}').then(()=>{document.getElementById('copied-{{ $post->id }}').style.display='block';setTimeout(()=>document.getElementById('copied-{{ $post->id }}').style.display='none',1800)}); shareOpen=false"
                     style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;background:transparent;border:none;border-radius:7px;cursor:pointer;color:#d4d9e0;font-size:.82rem;font-weight:600;text-align:left;transition:background .15s;"
                     onmouseover="this.style.background='#21262d'" onmouseout="this.style.background='transparent'">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                     Copy Link
                 </button>
-                <span id="copied-{{ $post->id }}" style="display:none;font-size:.75rem;color:#4ade80;padding:0 12px 6px;display:none;">✓ Link copied!</span>
+                <span id="copied-{{ $post->id }}" style="display:none;font-size:.75rem;color:#4ade80;padding:0 12px 6px;">✓ Link copied!</span>
 
                 {{-- Repost --}}
                 @auth
+                @if(!Auth::user()->isAdmin())
                 <a href="{{ route('posts.repost.form', $post) }}"
+                   @click.stop
                    style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;background:transparent;border:none;border-radius:7px;cursor:pointer;color:#d4d9e0;font-size:.82rem;font-weight:600;transition:background .15s;"
                    onmouseover="this.style.background='#21262d'" onmouseout="this.style.background='transparent'">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     ↺ Repost
                 </a>
+                @endif
                 @else
                 <a href="{{ route('login') }}"
+                   @click.stop
                    style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;background:transparent;border:none;border-radius:7px;cursor:pointer;color:#6b7280;font-size:.82rem;font-weight:600;transition:background .15s;"
                    onmouseover="this.style.background='#21262d'" onmouseout="this.style.background='transparent'">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -226,6 +230,7 @@
                 @endauth
             </div>
         </div>
+
 
     </div>
 </div>
