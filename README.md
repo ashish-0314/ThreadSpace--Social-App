@@ -11,7 +11,7 @@
 
 [🌐 Live Demo](https://web-production-0f335.up.railway.app) · [🐛 Report Bug](https://github.com/ashish-0314/ThreadSpace--Social-App/issues) · [✨ Request Feature](https://github.com/ashish-0314/ThreadSpace--Social-App/issues)
 
-![ThreadSpace Banner](public/images/thbg.png)
+
 
 </div>
 
